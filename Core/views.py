@@ -10,6 +10,51 @@ from django.urls import reverse
 from .models import *
 
 
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+@api_view(['POST'])
+def api_login(request):
+    """API-based login for Flutter"""
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(username=username, password=password)
+    if user:
+        login(request, user)
+        return Response({"message": "Login successful", "user": username})
+    else:
+        return Response({"error": "Invalid credentials"}, status=400)
+
+@csrf_exempt 
+@api_view(['POST'])
+def api_register(request):
+    """API-based registration for Flutter"""
+    first_name = request.data.get('first_name')
+    surname = request.data.get('surname')  # Match with Flutter field
+    username = request.data.get('username')
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if User.objects.filter(username=username).exists():
+        return JsonResponse({"error": "Username already exists"}, status=400)
+
+    if User.objects.filter(email=email).exists():
+        return JsonResponse({"error": "Email already exists"}, status=400)
+
+    if len(password) < 5:
+        return JsonResponse({"error": "Password must be at least 5 characters"}, status=400)
+
+    user = User.objects.create_user(
+        first_name=first_name, last_name=surname, username=username, email=email, password=password
+    )
+
+    return JsonResponse({"message": "Account created successfully"}, status=201)
+
+
 @login_required
 def Home(request):
     return render(request, 'index.html')

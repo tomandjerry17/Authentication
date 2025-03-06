@@ -9,4 +9,8 @@ urlpatterns = [
     path('forgot-password/', views.ForgotPassword, name='forgot-password'),
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
+
+     # API endpoints (for Flutter)
+    path('api/login/', views.api_login, name="api_login"),
+    path('api/register/', views.api_register, name="api_register"),
 ]
