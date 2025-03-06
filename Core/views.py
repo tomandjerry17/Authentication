@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -15,6 +15,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .serializers import ForgotPasswordSerializer, ResetPasswordSerializer
 
 @api_view(['POST'])
 def api_login(request):
@@ -58,6 +59,70 @@ def api_register(request):
 @login_required
 def Home(request):
     return render(request, 'index.html')
+
+@api_view(['POST'])
+def forgot_password(request):
+    """API to handle forgot password request"""
+    serializer = ForgotPasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+
+        # Create a new password reset request
+        reset_request = PasswordReset.objects.create(user=user)
+        reset_link = f"{request.scheme}://{request.get_host()}/api/password-reset/{reset_request.reset_id}/"
+
+        email_body = f'Reset your password using the link below:\n\n\n{reset_link}'
+        # Send email
+        email_message = EmailMessage(
+                'Reset your password', # email subject
+                email_body,
+                settings.EMAIL_HOST_USER, # email sender
+                [email] # email  receiver 
+            )
+
+        email_message.fail_silently = True
+        email_message.send()
+
+        return Response({"message": "Password reset link sent to email."}, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def check_reset_token(request, reset_id):
+    """API to verify if the reset token is valid"""
+    reset_request = get_object_or_404(PasswordReset, reset_id=reset_id)
+
+    if reset_request.is_expired():
+        reset_request.delete()
+        return Response({"error": "Reset link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"message": "Reset link is valid."}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def reset_password(request, reset_id):
+    """API to reset password using a valid reset token"""
+    reset_request = get_object_or_404(PasswordReset, reset_id=reset_id)
+
+    if reset_request.is_expired():
+        reset_request.delete()
+        return Response({"error": "Reset link has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = ResetPasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        user = reset_request.user
+        user.set_password(serializer.validated_data["password"])
+        user.save()
+
+        # Delete reset token after use
+        reset_request.delete()
+
+        return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 def RegisterView(request):
 

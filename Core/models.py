@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+from django.utils.timezone import now, timedelta
 
 class PasswordReset(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -9,3 +10,6 @@ class PasswordReset(models.Model):
 
     def __str__(self):
         return f"Password reset for {self.user.username} at {self.created_when}"
+    
+    def is_expired(self):
+        return now() > self.created_at + timedelta(minutes=10)  # Token expires in 10 minutes
