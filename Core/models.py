@@ -12,4 +12,4 @@ class PasswordReset(models.Model):
         return f"Password reset for {self.user.username} at {self.created_when}"
     
     def is_expired(self):
-        return now() > self.created_at + timedelta(minutes=10)  # Token expires in 10 minutes
+        return now() > self.created_when + timedelta(minutes=10)  # Token expires in 10 minutes
