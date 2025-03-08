@@ -86,8 +86,8 @@ def forgot_password(request):
         email_body = f"""
         Reset your password using one of the links below:
         
-        - **For API-based reset (e.g., mobile app):** {api_reset_link}
-        - **For web-based reset page:** {html_reset_link}
+        - For API-based reset (e.g., mobile app): {api_reset_link}
+        - For web-based reset page: {html_reset_link}
         
         This link will expire in 10 minutes.
         """
