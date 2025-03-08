@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Web pages
     path('', views.Home, name='home'),
     path('register/', views.RegisterView, name='register'),
     path('login/', views.LoginView, name='login'),
@@ -10,10 +11,12 @@ urlpatterns = [
     path('password-reset-sent/<str:reset_id>/', views.PasswordResetSent, name='password-reset-sent'),
     path('reset-password/<str:reset_id>/', views.ResetPassword, name='reset-password'),
 
-     # API endpoints (for Flutter)
+    # API endpoints (for Flutter)
     path('api/login/', views.api_login, name="api_login"),
     path('api/register/', views.api_register, name="api_register"),
-    path('api/forgot-password/', views.forgot_password, name="forgot-password"),
-    path('api/password-reset/<uuid:reset_id>/', views.check_reset_token, name="check-reset-token"),
-    path('api/password-reset/<uuid:reset_id>/', views.reset_password, name="reset-password"),
+    path('api/forgot-password/', views.forgot_password, name="api_forgot_password"),
+    
+    # Separate check and reset API endpoints
+    path('api/password-reset/check/<uuid:reset_id>/', views.check_reset_token, name="check-reset-token"),
+    path('api/password-reset/reset/<uuid:reset_id>/', views.reset_password, name="api-reset-password"),
 ]

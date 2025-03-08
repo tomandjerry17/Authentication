@@ -64,22 +64,41 @@ def Home(request):
 def forgot_password(request):
     """API to handle forgot password request"""
     serializer = ForgotPasswordSerializer(data=request.data)
+    
     if serializer.is_valid():
         email = serializer.validated_data['email']
-        user = User.objects.get(email=email)
+
+        # Check if user exists
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": "No user found with this email."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create a new password reset request
         reset_request = PasswordReset.objects.create(user=user)
-        reset_link = f"{request.scheme}://{request.get_host()}/api/password-reset/{reset_request.reset_id}/"
 
-        email_body = f'Reset your password using the link below:\n\n\n{reset_link}'
+        # API-based password reset link (for Flutter or external applications)
+        api_reset_link = f"{request.scheme}://{request.get_host()}/api/password-reset/{reset_request.reset_id}/"
+
+        # HTML page-based reset link (for web users)
+        html_reset_link = f"{request.scheme}://{request.get_host()}/reset-password/{reset_request.reset_id}/"
+
+        # Email content
+        email_body = f"""
+        Reset your password using one of the links below:
+        
+        - **For API-based reset (e.g., mobile app):** {api_reset_link}
+        - **For web-based reset page:** {html_reset_link}
+        
+        This link will expire in 10 minutes.
+        """
+
         # Send email
         email_message = EmailMessage(
-                'Reset your password', # email subject
-                email_body,
-                settings.EMAIL_HOST_USER, # email sender
-                [email] # email  receiver 
-            )
+            'Reset Your Password',
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [email]
+        )
 
         email_message.fail_silently = True
         email_message.send()
@@ -87,7 +106,6 @@ def forgot_password(request):
         return Response({"message": "Password reset link sent to email."}, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 def check_reset_token(request, reset_id):
